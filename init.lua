@@ -997,9 +997,8 @@ require('lazy').setup({
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
+        -- But for many setups, the LSP (`tsserver`) will work just fine
+        -- tsserver = {},
         -- https://github.com/fredrikekre/.dotfiles/blob/master/.julia/environments/nvim-lspconfig/Makefile
         julials = {
           on_new_config = function(new_config, _)
