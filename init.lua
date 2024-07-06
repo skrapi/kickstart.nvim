@@ -689,6 +689,15 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
+        -- https://github.com/fredrikekre/.dotfiles/blob/master/.julia/environments/nvim-lspconfig/Makefile
+        julials = {
+          on_new_config = function(new_config, _)
+            local julia = vim.fn.expand '~/.julia/environments/nvim-lspconfig/bin/julia'
+            if require('lspconfig').util.path.is_file(julia) then
+              new_config.cmd[1] = julia
+            end
+          end,
+        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -1019,7 +1028,19 @@ require('lazy').setup({
     },
   },
 
-  -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
+  {
+    'jpalardy/vim-slime',
+    init = function()
+      vim.g.slime_target = 'tmux'
+      -- vim.g.slime_default_config = {"socket_name" = "default", "target_pane" = "{last}"}
+      vim.g.slime_default_config = {
+        -- Lua doesn't have a string split function!
+        socket_name = vim.api.nvim_eval 'get(split($TMUX, ","), 0)',
+        target_pane = '{last}',
+      }
+    end,
+  },
+  -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
 
