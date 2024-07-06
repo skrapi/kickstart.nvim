@@ -161,6 +161,9 @@ vim.opt.scrolloff = 10
 vim.opt.hlsearch = true
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- jk exit keymap
+vim.keymap.set('i', 'jk', '<ESC>')
+
 -- Diagnostic keymaps
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [D]iagnostic message' })
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next [D]iagnostic message' })
@@ -212,6 +215,9 @@ if not vim.loop.fs_stat(lazypath) then
   vim.fn.system { 'git', 'clone', '--filter=blob:none', '--branch=stable', lazyrepo, lazypath }
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
+
+-- Obsidian setup
+vim.opt.conceallevel = 1
 
 -- [[ Configure and install plugins ]]
 --
@@ -278,7 +284,6 @@ require('lazy').setup({
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     config = function() -- This is the function that runs, AFTER loading
       require('which-key').setup()
-
       -- Document existing key chains
       require('which-key').register {
         ['<leader>c'] = { name = '[C]ode', _ = 'which_key_ignore' },
@@ -862,6 +867,71 @@ require('lazy').setup({
       --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
       --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
     end,
+  },
+  {
+    'epwalsh/obsidian.nvim',
+    version = '*', -- recommended, use latest release instead of latest commit
+    lazy = true,
+    ft = 'markdown',
+    -- Replace the above line with this if you only want to load obsidian.nvim for markdown files in your vault:
+    -- event = {
+    --   -- If you want to use the home shortcut '~' here you need to call 'vim.fn.expand'.
+    --   -- E.g. "BufReadPre " .. vim.fn.expand "~" .. "/my-vault/**.md"
+    --   "BufReadPre path/to/my-vault/**.md",
+    --   "BufNewFile path/to/my-vault/**.md",
+    -- },
+    dependencies = {
+      -- Required.
+      'nvim-lua/plenary.nvim',
+
+      -- see below for full list of optional dependencies 👇
+    },
+    opts = {
+      workspaces = {
+        {
+          name = 'Project',
+          path = '~/vaults/Project',
+        },
+        -- {
+        --   name = 'dnd_campaign',
+        --   path = '~/vaults/work',
+        -- },
+      },
+
+      -- Optional, completion of wiki links, local markdown links, and tags using nvim-cmp.
+      completion = {
+        -- Set to false to disable completion.
+        nvim_cmp = true,
+        -- Trigger completion at 2 chars.
+        min_chars = 2,
+      },
+
+      -- Optional, configure key mappings. These are the defaults. If you don't want to set any keymappings this
+      -- way then set 'mappings = {}'.
+      mappings = {
+        -- Overrides the 'gf' mapping to work on markdown/wiki links within your vault.
+        ['gf'] = {
+          action = function()
+            return require('obsidian').util.gf_passthrough()
+          end,
+          opts = { noremap = false, expr = true, buffer = true },
+        },
+        -- Toggle check-boxes.
+        ['<leader>ch'] = {
+          action = function()
+            return require('obsidian').util.toggle_checkbox()
+          end,
+          opts = { buffer = true },
+        },
+        -- Smart action depending on context, either follow link or toggle checkbox.
+        ['<cr>'] = {
+          action = function()
+            return require('obsidian').util.smart_action()
+          end,
+          opts = { buffer = true, expr = true },
+        },
+      },
+    },
   },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
