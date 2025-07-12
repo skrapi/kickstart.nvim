@@ -176,6 +176,10 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- jk exit keymap
 vim.keymap.set('i', 'jk', '<ESC>')
 
+-- Centre view after page up/down
+vim.keymap.set('n', '<C-d>', '<C-d>zz', { desc = 'Page down and centre view' })
+vim.keymap.set('n', '<C-u>', '<C-u>zz', { desc = 'Page up and centre view' })
+
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
@@ -666,6 +670,7 @@ require('lazy').setup({
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       },
     },
+    -- Show keymaps
     keys = {
       {
         '<leader>?',
