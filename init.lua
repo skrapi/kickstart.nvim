@@ -488,6 +488,7 @@ do
     gh 'obsidian-nvim/obsidian.nvim',
   }
   require('obsidian').setup {
+    legacy_commands = false, -- Use the modern `:Obsidian <subcommand>` command style
     workspaces = {
       { name = 'sylv_sync', path = '~/vaults/sylv_sync/' },
     },
