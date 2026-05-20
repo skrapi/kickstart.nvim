@@ -99,7 +99,7 @@ do
   vim.g.maplocalleader = ' '
 
   -- Set to true if you have a Nerd Font installed and selected in the terminal
-  vim.g.have_nerd_font = false
+  vim.g.have_nerd_font = true
 
   -- [[ Setting options ]]
   --  See `:help vim.o`
@@ -110,10 +110,11 @@ do
   vim.o.number = true
   -- You can also add relative line numbers, to help with jumping.
   --  Experiment for yourself to see if you like it!
-  -- vim.o.relativenumber = true
+  vim.o.relativenumber = true
 
   -- Enable mouse mode, can be useful for resizing splits for example!
-  vim.o.mouse = 'a'
+  --  Only in normal mode, so it doesn't interfere with text selection in insert/visual.
+  vim.o.mouse = 'n'
 
   -- Don't show the mode, since it's already in the status line
   vim.o.showmode = false
@@ -122,7 +123,22 @@ do
   --  Schedule the setting after `UiEnter` because it can increase startup-time.
   --  Remove this option if you want your OS clipboard to remain independent.
   --  See `:help 'clipboard'`
-  vim.schedule(function() vim.o.clipboard = 'unnamedplus' end)
+  --  This config uses `wl-clipboard` (Wayland); requires `wl-copy`/`wl-paste` on PATH.
+  vim.schedule(function()
+    vim.g.clipboard = {
+      name = 'wl-clipboard',
+      copy = {
+        ['+'] = 'wl-copy',
+        ['*'] = 'wl-copy --primary',
+      },
+      paste = {
+        ['+'] = 'wl-paste --no-newline',
+        ['*'] = 'wl-paste --no-newline --primary',
+      },
+      cache_enabled = 0,
+    }
+    vim.o.clipboard = 'unnamedplus'
+  end)
 
   -- Enable break indent
   vim.o.breakindent = true
@@ -179,6 +195,13 @@ do
   --  See `:help hlsearch`
   vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+  -- Exit insert mode with `jk`
+  vim.keymap.set('i', 'jk', '<Esc>', { desc = 'Exit insert mode' })
+
+  -- Half-page jumps that re-centre the view
+  vim.keymap.set('n', '<C-d>', '<C-d>zz', { desc = 'Move down by half a page and centre view' })
+  vim.keymap.set('n', '<C-u>', '<C-u>zz', { desc = 'Move up by half a page and centre view' })
+
   -- Diagnostic Config & Keymaps
   --  See `:help vim.diagnostic.Opts`
   vim.diagnostic.config {
@@ -187,9 +210,10 @@ do
     float = { border = 'rounded', source = 'if_many' },
     underline = { severity = { min = vim.diagnostic.severity.WARN } },
 
-    -- Can switch between these as you prefer
-    virtual_text = true, -- Text shows up at the end of the line
-    virtual_lines = false, -- Text shows up underneath the line, with virtual lines
+    -- Diagnostics show up as virtual lines underneath the line.
+    --  This is the built-in replacement for the `lsp_lines.nvim` plugin.
+    virtual_text = false, -- Text shows up at the end of the line
+    virtual_lines = true, -- Text shows up underneath the line, with virtual lines
 
     -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
     jump = {
@@ -377,24 +401,17 @@ do
     },
   }
 
+  -- Show the buffer-local keymaps for the current buffer.
+  vim.keymap.set('n', '<leader>?', function() require('which-key').show { global = false } end, { desc = 'Buffer Local Keymaps (which-key)' })
+
   -- [[ Colorscheme ]]
   -- You can easily change to a different colorscheme.
   -- Change the name of the colorscheme plugin below, and then
   -- change the command under that to load whatever the name of that colorscheme is.
   --
   -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-  vim.pack.add { gh 'folke/tokyonight.nvim' }
-  ---@diagnostic disable-next-line: missing-fields
-  require('tokyonight').setup {
-    styles = {
-      comments = { italic = false }, -- Disable italics in comments
-    },
-  }
-
-  -- Load the colorscheme here.
-  -- Like many other themes, this one has different styles, and you could load
-  -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-  vim.cmd.colorscheme 'tokyonight-night'
+  vim.pack.add { gh 'morhetz/gruvbox' }
+  vim.cmd.colorscheme 'gruvbox'
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -441,6 +458,40 @@ do
 
   -- ... and there is more!
   --  Check out: https://github.com/nvim-mini/mini.nvim
+
+  -- [[ Neogit ]]
+  --  An interactive Git interface (`:Neogit`), with diffview.nvim for diffs.
+  --  `plenary.nvim` is listed explicitly because Section 4 (Telescope) installs it
+  --  later; `vim.pack.add` de-duplicates, so naming it here is safe.
+  vim.pack.add {
+    gh 'nvim-lua/plenary.nvim',
+    gh 'sindrets/diffview.nvim',
+    gh 'NeogitOrg/neogit',
+  }
+  require('neogit').setup {}
+
+  -- [[ vim-slime ]]
+  --  Send text from a buffer to a REPL running in a tmux pane.
+  --  `vim.g.slime_*` must be set before the plugin loads.
+  vim.g.slime_target = 'tmux'
+  vim.g.slime_default_config = {
+    -- Lua doesn't have a string split function, so borrow Vimscript's.
+    socket_name = vim.api.nvim_eval 'get(split($TMUX, ","), 0)',
+    target_pane = '{last}',
+  }
+  vim.pack.add { gh 'jpalardy/vim-slime' }
+
+  -- [[ obsidian.nvim ]]
+  --  Note-taking integration for the Obsidian vault at `~/vaults/sylv_sync/`.
+  vim.pack.add {
+    gh 'nvim-lua/plenary.nvim',
+    gh 'obsidian-nvim/obsidian.nvim',
+  }
+  require('obsidian').setup {
+    workspaces = {
+      { name = 'sylv_sync', path = '~/vaults/sylv_sync/' },
+    },
+  }
 end
 
 -- ============================================================
@@ -694,10 +745,34 @@ do
     -- Some languages (like typescript) have entire language plugins that can be useful:
     --    https://github.com/pmizio/typescript-tools.nvim
     --
-    -- But for many setups, the LSP (`ts_ls`) will work just fine
+    -- NOTE: TypeScript is handled by `typescript-tools.nvim` (set up at the end of
+    -- this section), so `ts_ls` is intentionally not configured here.
     -- ts_ls = {},
 
     stylua = {}, -- Used to format Lua code
+
+    -- Web language servers
+    html = {},
+    cssls = {},
+    emmet_ls = {},
+
+    -- Julia. The LanguageServer.jl install lives in its own environment; if a
+    -- dedicated julia binary exists for it, `cmd[1]` is swapped to it below.
+    julials = {},
+
+    -- Elm. `elm-format` failures arrive via `window/showMessageRequest`, which
+    -- otherwise hangs the UI on an un-dismissable `vim.ui.select` prompt.
+    elmls = {
+      handlers = {
+        ['window/showMessageRequest'] = function(err, result, ctx)
+          if result.message:find('Running elm-format failed', 1, true) then
+            vim.notify(result.message, vim.log.levels.WARN)
+            return vim.NIL
+          end
+          return vim.lsp.handlers['window/showMessageRequest'](err, result, ctx)
+        end,
+      },
+    },
 
     -- Special Lua Config, as recommended by neovim help docs
     lua_ls = {
@@ -753,7 +828,8 @@ do
   -- You can press `g?` for help in this menu.
   local ensure_installed = vim.tbl_keys(servers or {})
   vim.list_extend(ensure_installed, {
-    -- You can add other tools here that you want Mason to install
+    -- Extra tools (formatters, etc.) that are not language servers.
+    'prettier', -- Formatter for web filetypes (see Section 6)
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -762,6 +838,27 @@ do
     vim.lsp.config(name, server)
     vim.lsp.enable(name)
   end
+
+  -- `julials` defaults to the `julia` on PATH. If a dedicated julia binary has
+  -- been set up for the language server, use that instead by patching `cmd[1]`
+  -- of the resolved config. Replaces the deprecated `on_new_config` hook.
+  local julia = vim.fn.expand '~/.julia/environments/nvim-lspconfig/bin/julia'
+  if vim.uv.fs_stat(julia) then
+    local julials_cfg = vim.lsp.config.julials
+    local julials_cmd = julials_cfg and julials_cfg.cmd
+    if type(julials_cmd) == 'table' then
+      julials_cmd = vim.deepcopy(julials_cmd)
+      julials_cmd[1] = julia
+      vim.lsp.config('julials', { cmd = julials_cmd })
+    end
+  end
+
+  -- [[ TypeScript ]]
+  --  TypeScript/JavaScript use `typescript-tools.nvim` instead of the `ts_ls`
+  --  language server (faster, extra commands). `nvim-lspconfig` and `plenary`
+  --  are already installed above.
+  vim.pack.add { gh 'pmizio/typescript-tools.nvim' }
+  require('typescript-tools').setup {}
 end
 
 -- ============================================================
@@ -774,23 +871,27 @@ do
   require('conform').setup {
     notify_on_error = false,
     format_on_save = function(bufnr)
-      -- You can specify filetypes to autoformat on save here:
-      local enabled_filetypes = {
-        -- lua = true,
-        -- python = true,
-      }
-      if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
-      else
+      -- Format on save for every filetype except those without a well
+      -- standardized coding style. Add filetypes here to opt them out.
+      local disable_filetypes = { c = true, cpp = true }
+      if disable_filetypes[vim.bo[bufnr].filetype] then
         return nil
       end
+      return { timeout_ms = 500 }
     end,
     default_format_opts = {
       lsp_format = 'fallback', -- Use external formatters if configured below, otherwise use LSP formatting. Set to `false` to disable LSP formatting entirely.
     },
     -- You can also specify external formatters in here.
     formatters_by_ft = {
-      -- rust = { 'rustfmt' },
+      lua = { 'stylua' },
+      css = { 'prettier' },
+      html = { 'prettier' },
+      json = { 'prettier' },
+      javascript = { 'prettier' },
+      javascriptreact = { 'prettier' },
+      typescript = { 'prettier' },
+      typescriptreact = { 'prettier' },
       -- Conform can also run multiple formatters sequentially
       -- python = { "isort", "black" },
       --
@@ -817,9 +918,8 @@ do
   -- `friendly-snippets` contains a variety of premade snippets.
   --    See the README about individual language/framework/plugin snippets:
   --    https://github.com/rafamadriz/friendly-snippets
-  --
-  -- vim.pack.add { gh 'rafamadriz/friendly-snippets' }
-  -- require('luasnip.loaders.from_vscode').lazy_load()
+  vim.pack.add { gh 'rafamadriz/friendly-snippets' }
+  require('luasnip.loaders.from_vscode').lazy_load()
 
   -- [[ Autocomplete Engine ]]
   vim.pack.add { { src = gh 'saghen/blink.cmp', version = vim.version.range '1.*' } }
@@ -963,7 +1063,7 @@ do
   -- require 'kickstart.plugins.debug'
   -- require 'kickstart.plugins.indent_line'
   -- require 'kickstart.plugins.lint'
-  -- require 'kickstart.plugins.autopairs'
+  require 'kickstart.plugins.autopairs'
   -- require 'kickstart.plugins.neo-tree'
   -- require 'kickstart.plugins.gitsigns' -- adds gitsigns recommended keymaps
 
